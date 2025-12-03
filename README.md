@@ -18,8 +18,7 @@ This implementation corresponds to our paper:
 TSS-LCD: A Temporal–Spectral–Spatial Guided Latent Conditional Diffusion Model for Spectrum Prediction Under Incomplete Observations
 
 Algorithm Overview
-
-(Insert the framework figure here, for example: ./results/tss_lcd_overview.png.)
+git
 
 Quick Start
 1. Installation
