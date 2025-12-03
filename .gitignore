@@ -3,7 +3,7 @@ dataset/Amplitude.dat
 dataset/Amplitude_cleaned.dat
 *.dat
 
-# 模型权重和 checkpoints
+ 模型权重和 checkpoints
 checkpoints/
 *.pth
 *.pt

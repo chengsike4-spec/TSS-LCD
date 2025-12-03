@@ -1,7 +1,5 @@
 # test.py
 import os
-import argparse
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,57 +10,50 @@ from F2Cconv1d import FutureAutoencoder
 from NoiseNet import DiffusionModel, inference
 from data_utils import get_dataloader
 
-# =============== 超参数配置（需与 train.py 保持一致） ===============
-CFG = {
-    "context_length": 50,
-    "future_length": 10,
-    "D": 750,
-    "n_timesteps": 1000,
-    "lr": 1e-4,
-    "batch_size": 256,
-    "latent_dim": 32,
-}
-
-CHECKPOINT_DIR = "checkpoints"
-RESULT_DIR = "results"
-os.makedirs(RESULT_DIR, exist_ok=True)
+from config import get_test_parser
 
 
 # -----------------------------------------------------------
 #  Load helpers
 # -----------------------------------------------------------
-def load_weights(device):
+def load_weights(device, args):
+    """
+    从 args.checkpoint_dir 加载三个子网络的权重。
+    所有结构超参数直接用 args.xxx。
+    """
     ae_ctx = ContextTransformerAE(
-        seq_len=CFG["context_length"],
-        input_dim=CFG["D"],
-        latent_dim=CFG["latent_dim"],
+        seq_len=args.context_length,
+        input_dim=args.D,
+        latent_dim=args.latent_dim,
     ).to(device)
 
     ae_fut = FutureAutoencoder(
-        CFG["future_length"], CFG["D"], CFG["latent_dim"]
+        args.future_length, args.D, args.latent_dim
     ).to(device)
 
     diffusion = DiffusionModel(
-        cond_dim=CFG["latent_dim"],
-        latent_dim=CFG["latent_dim"],
-        n_timestep=CFG["n_timesteps"],
+        cond_dim=args.latent_dim,
+        latent_dim=args.latent_dim,
+        n_timestep=args.n_timesteps,
         device=device,
     ).to(device)
 
+    ckpt_dir = args.checkpoint_dir
+
     ae_ctx.load_state_dict(
-        torch.load(os.path.join(CHECKPOINT_DIR, "ae_ctx.pth"), map_location=device)
+        torch.load(os.path.join(ckpt_dir, "ae_ctx.pth"), map_location=device)
     )
     ae_fut.load_state_dict(
-        torch.load(os.path.join(CHECKPOINT_DIR, "ae_fut.pth"), map_location=device)
+        torch.load(os.path.join(ckpt_dir, "ae_fut.pth"), map_location=device)
     )
     diffusion.load_state_dict(
-        torch.load(os.path.join(CHECKPOINT_DIR, "diffusion.pth"), map_location=device)
+        torch.load(os.path.join(ckpt_dir, "diffusion.pth"), map_location=device)
     )
 
     ae_ctx.eval()
     ae_fut.eval()
     diffusion.eval()
-    print(f"Loaded weights from '{CHECKPOINT_DIR}'")
+    print(f"Loaded weights from '{ckpt_dir}'")
     return ae_ctx, ae_fut, diffusion
 
 
@@ -76,7 +67,10 @@ def inverse_transform(mat, scaler):
     return scaler.inverse_transform(mat)
 
 
-def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device):
+def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device, args):
+    result_dir = args.result_dir
+    os.makedirs(result_dir, exist_ok=True)
+
     # 1) 收集所有样本的预测
     gt_list, pred_list = [], []
     with torch.no_grad():
@@ -87,12 +81,12 @@ def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device):
             gt_list.append(fut[:, 0, :].cpu().numpy())
             pred_list.append(pred[:, 0, :])
 
-    gt_mat = np.concatenate(gt_list, axis=0)  # (Nsamples, D)
+    gt_mat = np.concatenate(gt_list, axis=0)   # (Nsamples, D)
     pred_mat = np.concatenate(pred_list, axis=0)
 
-    # 平滑预测
-    window1 = 6
-    window2 = 3
+    # 简单平滑（如需可加到 parser 里）
+    window1 = 1
+    window2 = 1
     if len(pred_mat) >= window1:
         kernel1 = np.ones(window1) / window1
         kernel2 = np.ones(window2) / window2
@@ -106,11 +100,11 @@ def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device):
 
     # 保存 Ground Truth
     gt_df = pd.DataFrame(gt_mat.reshape(gt_mat.shape[0], -1))
-    gt_df.to_csv("gt_mat.csv", index=False)
+    gt_df.to_csv(os.path.join(result_dir, "gt_mat.csv"), index=False)
 
     # 保存 Prediction
     pred_df = pd.DataFrame(pred_mat.reshape(pred_mat.shape[0], -1))
-    pred_df.to_csv("pred_matours.csv", index=False)
+    pred_df.to_csv(os.path.join(result_dir, "pred_matours.csv"), index=False)
 
     # 2) 热力图
     all_vals = np.concatenate([gt_mat.ravel(), pred_mat.ravel()])
@@ -132,12 +126,12 @@ def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device):
 
     fig.colorbar(im0, ax=axs.ravel().tolist(), shrink=0.6, label="Power (dBm)")
     plt.tight_layout()
-    heatmap_path = os.path.join(RESULT_DIR, "spectrogram_comparison.png")
+    heatmap_path = os.path.join(result_dir, "spectrogram_comparison.png")
     plt.savefig(heatmap_path, dpi=300)
     print(f"Heatmap saved to {heatmap_path}")
 
     # 3) 选定频点曲线对比
-    pick_bands = [0, 250, 500]
+    pick_bands = [100, 350, 500]
     fig2, axes = plt.subplots(len(pick_bands), 1, figsize=(14, 3 * len(pick_bands)), sharex=True)
     if len(pick_bands) == 1:
         axes = [axes]
@@ -149,7 +143,7 @@ def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device):
         axes[idx].legend()
     axes[-1].set_xlabel("Test Sample Index")
     plt.tight_layout()
-    curve_path = os.path.join(RESULT_DIR, "band_curves.png")
+    curve_path = os.path.join(result_dir, "band_curves.png")
     plt.savefig(curve_path, dpi=300)
     print(f"Band comparison curves saved to {curve_path}")
     plt.show()
@@ -160,34 +154,39 @@ def visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device):
 # -----------------------------------------------------------
 def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(">>> Test / Inference mode")
-    print(f"Using test CSV: {args.csv_test}")
 
-    # 使用 testDataset.csv 构建 test_loader & scaler
+    print(">>> Test / Inference mode")
+    print(f"Using test CSV : {args.csv_test}")
+    print(f"Checkpoint dir: {args.checkpoint_dir}")
+    print(f"Result dir    : {args.result_dir}")
+    print("Hyper-params  :")
+    print(f"  context_length = {args.context_length}")
+    print(f"  future_length  = {args.future_length}")
+    print(f"  D              = {args.D}")
+    print(f"  latent_dim     = {args.latent_dim}")
+    print(f"  n_timesteps    = {args.n_timesteps}")
+    print(f"  batch_size     = {args.batch_size}")
+    print(f"  lr             = {args.lr}")
+
+    # dataloader
     test_loader, scaler = get_dataloader(
         csv_path=args.csv_test,
-        context_length=CFG["context_length"],
-        future_length=CFG["future_length"],
-        D=CFG["D"],
-        batch_size=CFG["batch_size"],
+        context_length=args.context_length,
+        future_length=args.future_length,
+        D=args.D,
+        batch_size=args.batch_size,
         shuffle=False,
         return_scaler=True,
     )
 
     # 加载权重
-    ae_ctx, ae_fut, diffusion = load_weights(device)
+    ae_ctx, ae_fut, diffusion = load_weights(device, args)
 
     # 可视化
-    visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device)
+    visualise(test_loader, ae_ctx, ae_fut, diffusion, scaler, device, args)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Spectrum Prediction • Test only")
-    parser.add_argument(
-        "--csv-test",
-        type=str,
-        default="./dataset/testDataset.csv",
-        help="Path to test CSV file",
-    )
+    parser = get_test_parser()
     args = parser.parse_args()
     main(args)
