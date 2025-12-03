@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from Context2CondNew import ContextTransformerAE
-from F2Cconv1d import FutureAutoencoder
+from F2Cnet import FutureAutoencoder
 from NoiseNet import DiffusionModel
 from data_utils import get_dataloader
 

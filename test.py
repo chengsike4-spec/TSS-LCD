@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import torch
 
 from Context2CondNew import ContextTransformerAE
-from F2Cconv1d import FutureAutoencoder
+from F2Cnet import FutureAutoencoder
 from NoiseNet import DiffusionModel, inference
 from data_utils import get_dataloader
 
