@@ -15,7 +15,7 @@ TSS-LCD adopts a two-stage architecture:
 1. A Temporal–Spectral–Spatial attention module constructs a unified conditional representation from incomplete historical spectrum observations.  
 2. A latent conditional diffusion model generates fine-grained future RSS spectra in a compact latent space and decodes them back to the original spectrum domain.
 
-![](/home/csk/桌面/algorithm_overview.jpg)
+![](/home/csk/PycharmProjects/DiffusionPred_third_paper/results/algorithm_overview.jpg)
 
 ---
 
