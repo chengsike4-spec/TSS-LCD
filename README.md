@@ -77,10 +77,10 @@ Trained model weights will be saved in:
 
 ### 4. Testing / Inference
 
-To evaluate the trained model and generate prediction figures:
+To evaluate the trained model and generate prediction figures, You can save your processed dataset (for example `trainDataset.csv`) in the `./dataset` directory, then Run:
 
 ```bash
-python train.py --mode test --csv ./dataset/merged_power_data_sub6GHz_avg_per_minute.csv
+python train.py 
 ```
 
 The script will generate:
