@@ -15,7 +15,7 @@ TSS-LCD adopts a two-stage architecture:
 1. A Temporal–Spectral–Spatial attention module constructs a unified conditional representation from incomplete historical spectrum observations.  
 2. A latent conditional diffusion model generates fine-grained future RSS spectra in a compact latent space and decodes them back to the original spectrum domain.
 
-![](/home/csk/PycharmProjects/DiffusionPred_third_paper/results/algorithm_overview.jpg)
+![TSS-LCD Framework](./results/algorithm_overview.jpg)
 
 ---
 
@@ -167,7 +167,6 @@ By combining latent modeling and conditioned diffusion, TSS-LCD can:
 TSS-LCD is evaluated on the AERPAW wideband spectrum dataset with sub-6GHz RSS measurements collected at multiple fixed nodes (CC1, CC2, LW1).
 
 The experimental setting is:
-
 ```text
 - Input:   50 historical time steps with 25% missing observations
 - Output:  10 future time steps of full-band RSS
@@ -175,16 +174,10 @@ The experimental setting is:
 - Metrics: MSE, RMSE, MAE, MAPE
 ```
 
-A comparison with several baselines shows that TSS-LCD achieves the best overall performance:
 
-```text
-Method        MSE      RMSE     MAE      MAPE
--------------------------------------------------------
-TSS-LCD       0.1621   0.4026   0.2418   0.2032%
-STS-PredNet   0.9325   0.9656   0.6810   0.5628%
-CSMA          0.6127   0.7827   0.5125   0.4279%
-ConvLSTM      1.4158   1.1898   0.8493   0.6985%
-```
+![](./results/band_curves.png)
+![](./results/spectrogram_comparison.png)
+
 
 These results indicate that TSS-LCD:
 
