@@ -36,7 +36,7 @@ pip install -r requirements.txt
 Place your merged spectrum CSV file at:
 
 ```bash
-./dataset/merged_power_data_sub6GHz_avg_per_minute.csv
+./dataset/trainDataset.csv
 ```
 
 The expected CSV format (RSS in dBm) is:
@@ -80,7 +80,7 @@ Trained model weights will be saved in:
 To evaluate the trained model and generate prediction figures, You can Run:
 
 ```bash
-python train.py 
+python test.py 
 ```
 
 The script will generate:
